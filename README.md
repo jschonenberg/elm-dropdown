@@ -2,10 +2,10 @@
 `elm-dropdown` offers a flexible component which can serve as a foundation for custom dropdowns, select-inputs, popovers, and more.
 
 #### Features:
-* Stateless
-* Use any HTML-element as toggle or drawer
-* Choose for toggle on on click (default) or on hover
-* Supports keyboard navigation (`tab`, `esc`)
+* Stateless.
+* Use any HTML-element as toggle or drawer.
+* Choose for toggle on on click, hover, or focus.
+* Supports keyboard navigation (`tab`, `esc`).
 * No backdrop-element, direct interaction with other elements is possible.
 * Unassuming about visual style, bring your own CSS.
 
