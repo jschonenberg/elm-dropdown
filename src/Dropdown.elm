@@ -100,22 +100,22 @@ type ToggleEvent
 
 {-| Creates a dropdown using the given state, config, toggle, and drawer.
 
-    dropdown
-        model.myDropdownState
-        myDropdownConfig
-        (toggle button
+    dropdown div
+        []
+        [ toggle button
             [ class "myButton" ] [ text "More options" ]
-        )
-        (drawer div
+        , drawer div
             [ class "myDropdownDrawer" ]
             [ button [ onClick NewFile ] [ text "New" ]
             , button [ onClick OpenFile ] [ text "Open..." ]
             , button [ onClick SaveFile ] [ text "Save" ]
             ]
-    )
+        ]
+        model.myDropdownState
+        myDropdownConfig
 -}
-dropdown : State -> Config msg -> (State -> Config msg -> Html msg) -> (State -> Config msg -> Html msg) -> Html msg
-dropdown isOpen config toggle drawer =
+dropdown : (List (Html.Attribute msg) -> List (Html msg) -> Html msg) -> List (Html.Attribute msg) -> List (State -> Config msg -> Html msg) -> State -> Config msg -> Html msg
+dropdown element attributes children isOpen config =
     let
         toggleEvents =
             case config.toggleEvent of
@@ -127,17 +127,16 @@ dropdown isOpen config toggle drawer =
                 _ ->
                     [ on "focusout" (handleFocusChanged isOpen config) ]
     in
-        div
+        element
             ([ on "keydown" (handleKeyDown isOpen config) ]
                 ++ toggleEvents
                 ++ [ anchor config.identifier
                    , tabindex -1
                    , style [ pRelative, dInlineBlock, outlineNone ]
                    ]
+                ++ attributes
             )
-            [ toggle isOpen config
-            , drawer isOpen config
-            ]
+            (List.map (\child -> child isOpen config) children)
 
 
 {-| Transforms the given HTML-element into a working toggle for your dropdown.

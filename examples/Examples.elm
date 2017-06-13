@@ -39,16 +39,18 @@ view : Model -> Html Msg
 view model =
     div []
         [ dropdown
-            model.myDropdown
-            myDropdownConfig
-            (toggle button [] [ text "Toggle" ])
-            (drawer div
+            div
+            []
+            [ toggle button [] [ text "Toggle" ]
+            , drawer div
                 []
                 [ button [] [ text "Option 1" ]
                 , button [] [ text "Option 2" ]
                 , button [] [ text "Option 3" ]
                 ]
-            )
+            ]
+            model.myDropdown
+            myDropdownConfig
         ]
 
 
