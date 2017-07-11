@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "summary": "Component to serve as a foundation for custom dropdowns.",
     "repository": "https://github.com/jschonenberg/elm-dropdown.git",
     "license": "BSD-3-Clause",
