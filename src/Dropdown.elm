@@ -1,6 +1,7 @@
-module Dropdown exposing (State, Config, ToggleEvent(..), dropdown, toggle, drawer)
+module Dropdown exposing (Config, State, ToggleEvent(..), drawer, dropdown, toggle)
 
 {-| Flexible dropdown component which serves as a foundation for custom dropdowns, select–inputs, popovers, and more.
+
 
 # Example
 
@@ -10,21 +11,17 @@ Basic example of usage:
     init =
         { myDropdown = False }
 
-
     type alias Model =
         { myDropdown : Dropdown.State }
 
-
     type Msg
         = ToggleDropdown Bool
-
 
     update : Msg -> Model -> ( Model, Cmd Msg )
     update msg model =
         case msg of
             ToggleDropdown newState ->
                 ( { model | myDropdown = newState }, Cmd.none )
-
 
     view : Model -> Html Msg
     view model =
@@ -42,7 +39,6 @@ Basic example of usage:
                 )
             ]
 
-
     myDropdownConfig : Dropdown.Config Msg
     myDropdownConfig =
         Dropdown.Config
@@ -51,34 +47,39 @@ Basic example of usage:
             (class "visible")
             ToggleDropdown
 
+
 # Configuration
+
 @docs State, Config, ToggleEvent
 
+
 # Views
+
 @docs dropdown, toggle, drawer
 
 -}
 
 import Html exposing (Html, button, div, s, text)
 import Html.Attributes exposing (attribute, id, property, style, tabindex)
-import Html.Events exposing (on, onClick, onFocus, onMouseEnter, onMouseOut, keyCode)
+import Html.Events exposing (keyCode, on, onClick, onFocus, onMouseEnter, onMouseOut, onWithOptions)
 import Json.Decode as JD
 import Json.Decode.Extra as JD
 import Json.Encode as JE
 
 
-{-|
-Indicates wether the dropdown's drawer is visible or not.
+{-| Indicates wether the dropdown's drawer is visible or not.
 -}
 type alias State =
     Bool
 
 
 {-| Configuration.
-* `identifier`: unique identifier for the dropdown.
-* `toggleEvent`: Event on which the dropdown's drawer should appear or disappear.
-* `drawerVisibleAttribute`: `Html.Attribute msg` that's applied to the dropdown's drawer when visible.
-* `callback`: msg which will be called when the state of the dropdown should be changed.
+
+  - `identifier`: unique identifier for the dropdown.
+  - `toggleEvent`: Event on which the dropdown's drawer should appear or disappear.
+  - `drawerVisibleAttribute`: `Html.Attribute msg` that's applied to the dropdown's drawer when visible.
+  - `callback`: msg which will be called when the state of the dropdown should be changed.
+
 -}
 type alias Config msg =
     { identifier : String
@@ -88,9 +89,7 @@ type alias Config msg =
     }
 
 
-{-|
-
-Used to set the event on which the dropdown's drawer should appear or disappear.
+{-| Used to set the event on which the dropdown's drawer should appear or disappear.
 -}
 type ToggleEvent
     = OnClick
@@ -113,6 +112,7 @@ type ToggleEvent
         ]
         model.myDropdownState
         myDropdownConfig
+
 -}
 dropdown : (List (Html.Attribute msg) -> List (Html msg) -> Html msg) -> List (Html.Attribute msg) -> List (State -> Config msg -> Html msg) -> State -> Config msg -> Html msg
 dropdown element attributes children isOpen config =
@@ -127,16 +127,16 @@ dropdown element attributes children isOpen config =
                 _ ->
                     [ on "focusout" (handleFocusChanged isOpen config) ]
     in
-        element
-            ([ on "keydown" (handleKeyDown isOpen config) ]
-                ++ toggleEvents
-                ++ [ anchor config.identifier
-                   , tabindex -1
-                   , style [ pRelative, dInlineBlock, outlineNone ]
-                   ]
-                ++ attributes
-            )
-            (List.map (\child -> child isOpen config) children)
+    element
+        ([ on "keydown" (handleKeyDown isOpen config) ]
+            ++ toggleEvents
+            ++ [ anchor config.identifier
+               , tabindex -1
+               , style [ pRelative, dInlineBlock, outlineNone ]
+               ]
+            ++ attributes
+        )
+        (List.map (\child -> child isOpen config) children)
 
 
 {-| Transforms the given HTML-element into a working toggle for your dropdown.
@@ -155,7 +155,12 @@ toggle element attributes children isOpen model =
         toggleEvents =
             case model.toggleEvent of
                 OnClick ->
-                    [ onClick <| model.callback (not isOpen) ]
+                    [ onWithOptions "click"
+                        { preventDefault = True
+                        , stopPropagation = True
+                        }
+                        (JD.succeed (model.callback (not isOpen)))
+                    ]
 
                 OnHover ->
                     [ onMouseEnter (model.callback True)
@@ -165,9 +170,9 @@ toggle element attributes children isOpen model =
                 OnFocus ->
                     [ onFocus (model.callback True) ]
     in
-        element
-            (toggleEvents ++ attributes)
-            children
+    element
+        (toggleEvents ++ attributes)
+        children
 
 
 {-| Transforms the given HTML-element into a working drawer for your dropdown.
@@ -181,6 +186,7 @@ Example of use:
         , button [ onClick OpenFile ] [ text "Open..." ]
         , button [ onClick SaveFile ] [ text "Save" ]
         ]
+
 -}
 drawer : (List (Html.Attribute msg) -> List (Html msg) -> Html msg) -> List (Html.Attribute msg) -> List (Html msg) -> State -> Config msg -> Html msg
 drawer element givenAttributes children isOpen config =
@@ -191,9 +197,9 @@ drawer element givenAttributes children isOpen config =
             else
                 [ style [ vHidden, pAbsolute ] ] ++ givenAttributes
     in
-        element
-            attributes
-            children
+    element
+        attributes
+        children
 
 
 anchor : String -> Html.Attribute msg
@@ -212,12 +218,12 @@ handleKeyDown isOpen { identifier, callback } =
 
 handleFocusChanged : State -> Config msg -> JD.Decoder msg
 handleFocusChanged isOpen { identifier, callback } =
-    (JD.map callback (isFocusOnSelf identifier))
+    JD.map callback (isFocusOnSelf identifier)
 
 
 isFocusOnSelf : String -> JD.Decoder Bool
 isFocusOnSelf identifier =
-    (JD.field "relatedTarget" (decodeDomElement identifier))
+    JD.field "relatedTarget" (decodeDomElement identifier)
         |> JD.andThen isChildOfSelf
         |> JD.withDefault False
 
