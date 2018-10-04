@@ -61,7 +61,7 @@ Basic example of usage:
 
 import Html exposing (Html, button, div, s, text)
 import Html.Attributes exposing (attribute, id, property, style, tabindex)
-import Html.Events exposing (keyCode, on, onClick, onFocus, onMouseEnter, onMouseOut, onWithOptions)
+import Html.Events exposing (custom, keyCode, on, onClick, onFocus, onMouseEnter, onMouseOut)
 import Json.Decode as JD
 import Json.Decode.Extra as JD
 import Json.Encode as JE
@@ -132,7 +132,9 @@ dropdown element attributes children isOpen config =
             ++ toggleEvents
             ++ [ anchor config.identifier
                , tabindex -1
-               , style [ pRelative, dInlineBlock, outlineNone ]
+               , pRelative
+               , dInlineBlock
+               , outlineNone
                ]
             ++ attributes
         )
@@ -155,11 +157,13 @@ toggle element attributes children isOpen model =
         toggleEvents =
             case model.toggleEvent of
                 OnClick ->
-                    [ onWithOptions "click"
-                        { preventDefault = True
-                        , stopPropagation = True
-                        }
-                        (JD.succeed (model.callback (not isOpen)))
+                    [ custom "click"
+                        (JD.succeed
+                            { message = model.callback (not isOpen)
+                            , preventDefault = True
+                            , stopPropagation = True
+                            }
+                        )
                     ]
 
                 OnHover ->
@@ -193,9 +197,9 @@ drawer element givenAttributes children isOpen config =
     let
         attributes =
             if isOpen then
-                config.drawerVisibleAttribute :: [ style [ vVisible, pAbsolute ] ] ++ givenAttributes
+                config.drawerVisibleAttribute :: [ vVisible, pAbsolute ] ++ givenAttributes
             else
-                [ style [ vHidden, pAbsolute ] ] ++ givenAttributes
+                [ vHidden, pAbsolute ] ++ givenAttributes
     in
     element
         attributes
@@ -241,11 +245,11 @@ isDropdown identifier identifier2 =
 
 
 isChildOfSelf : DomElement -> JD.Decoder Bool
-isChildOfSelf { isDropdown, parentElement } =
-    if isDropdown then
+isChildOfSelf cfg =
+    if cfg.isDropdown then
         JD.succeed True
     else
-        case parentElement of
+        case cfg.parentElement of
             Nothing ->
                 JD.succeed False
 
@@ -263,31 +267,31 @@ type ParentElement
     = ParentElement DomElement
 
 
-vVisible : ( String, String )
+vVisible : Html.Attribute msg
 vVisible =
-    ( "visibility", "visible" )
+    style "visibility" "visible"
 
 
-vHidden : ( String, String )
+vHidden : Html.Attribute msg
 vHidden =
-    ( "visibility", "hidden" )
+    style "visibility" "hidden"
 
 
-pRelative : ( String, String )
+pRelative : Html.Attribute msg
 pRelative =
-    ( "position", "relative" )
+    style "position" "relative"
 
 
-pAbsolute : ( String, String )
+pAbsolute : Html.Attribute msg
 pAbsolute =
-    ( "position", "absolute" )
+    style "position" "absolute"
 
 
-dInlineBlock : ( String, String )
+dInlineBlock : Html.Attribute msg
 dInlineBlock =
-    ( "display", "inline-block" )
+    style "display" "inline-block"
 
 
-outlineNone : ( String, String )
+outlineNone : Html.Attribute msg
 outlineNone =
-    ( "outline", "none" )
+    style "outline" "none"
