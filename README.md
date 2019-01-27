@@ -14,50 +14,50 @@
 Basic example of use:
 
 ```elm
-    init : Model
-    init =
-        { myDropdown = False }
+init : Model
+init =
+    { myDropdown = False }
 
 
-    type alias Model =
-        { myDropdown : Dropdown.State }
+type alias Model =
+    { myDropdown : Dropdown.State }
 
 
-    type Msg
-        = ToggleDropdown Bool
+type Msg
+    = ToggleDropdown Bool
 
 
-    update : Msg -> Model -> ( Model, Cmd Msg )
-    update msg model =
-        case msg of
-            ToggleDropdown newState ->
-                ( { model | myDropdown = newState }, Cmd.none )
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        ToggleDropdown newState ->
+            ( { model | myDropdown = newState }, Cmd.none )
 
 
-    view : Model -> Html Msg
-    view model =
-        div []
-            [ dropdown
-                div
+view : Model -> Html Msg
+view model =
+    div []
+        [ dropdown
+            div
+            []
+            [ toggle button [] [ text "Toggle" ]
+            , drawer div
                 []
-                [ toggle button [] [ text "Toggle" ]
-                , drawer div
-                    []
-                    [ button [] [ text "Option 1" ]
-                    , button [] [ text "Option 2" ]
-                    , button [] [ text "Option 3" ]
-                    ]
+                [ button [] [ text "Option 1" ]
+                , button [] [ text "Option 2" ]
+                , button [] [ text "Option 3" ]
                 ]
-                model.myDropdown
-                myDropdownConfig
             ]
+            model.myDropdown
+            myDropdownConfig
+        ]
 
 
-    myDropdownConfig : Dropdown.Config Msg
-    myDropdownConfig =
-        Dropdown.Config
-            "myDropdown"
-            OnClick
-            (class "visible")
-            ToggleDropdown 
+myDropdownConfig : Dropdown.Config Msg
+myDropdownConfig =
+    Dropdown.Config
+        "myDropdown"
+        OnClick
+        (class "visible")
+        ToggleDropdown 
 ```
