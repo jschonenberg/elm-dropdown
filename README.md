@@ -13,6 +13,7 @@
 
 Basic example of use:
 
+```elm
     init : Model
     init =
         { myDropdown = False }
@@ -59,3 +60,4 @@ Basic example of use:
             OnClick
             (class "visible")
             ToggleDropdown 
+```
