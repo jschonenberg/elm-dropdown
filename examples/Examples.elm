@@ -1,17 +1,17 @@
-module Main exposing (..)
+module Main exposing (Model, Msg(..), init, main, myDropdownConfig, update, view)
 
-import Dropdown exposing (dropdown, toggle, drawer, ToggleEvent(..))
+import Browser
+import Dropdown exposing (ToggleEvent(..), drawer, dropdown, toggle)
 import Html exposing (..)
 import Html.Attributes exposing (class)
 
 
-main : Program Never Model Msg
+main : Program () Model Msg
 main =
-    Html.program
-        { init = init ! []
-        , update = update
+    Browser.sandbox
+        { init = init
         , view = view
-        , subscriptions = (\_ -> Sub.none)
+        , update = update
         }
 
 
@@ -28,36 +28,40 @@ type Msg
     = ToggleDropdown Bool
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> Model
 update msg model =
     case msg of
         ToggleDropdown newState ->
-            ( { model | myDropdown = newState }, Cmd.none )
+            { model | myDropdown = newState }
 
 
 view : Model -> Html Msg
-view model =
+view { myDropdown } =
     div []
         [ dropdown
+            myDropdownConfig
+            myDropdown
             div
             []
-            [ toggle button [] [ text "Toggle" ]
-            , drawer div
-                []
-                [ button [] [ text "Option 1" ]
-                , button [] [ text "Option 2" ]
-                , button [] [ text "Option 3" ]
-                ]
+            [ \config state ->
+                toggle config state button [] [ text "Toggle" ]
+            , \config state ->
+                drawer config
+                    state
+                    div
+                    []
+                    [ button [] [ text "Option 1" ]
+                    , button [] [ text "Option 2" ]
+                    , button [] [ text "Option 3" ]
+                    ]
             ]
-            model.myDropdown
-            myDropdownConfig
         ]
 
 
 myDropdownConfig : Dropdown.Config Msg
 myDropdownConfig =
-    Dropdown.Config
-        "myDropdown"
-        OnClick
-        (class "visible")
-        ToggleDropdown
+    { identifier = "myDropdown"
+    , toggleEvent = Dropdown.OnClick
+    , drawerVisibleAttribute = class "visible"
+    , onToggle = ToggleDropdown
+    }
