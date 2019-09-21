@@ -1,6 +1,6 @@
 module Dropdown exposing
     ( State, Config, ToggleEvent(..)
-    , dropdown, toggle, drawer
+    , dropdown, root, toggle, drawer
     )
 
 {-| Flexible dropdown component which serves as a foundation for custom dropdowns, select–inputs, popovers, and more.
@@ -12,10 +12,10 @@ Basic example of usage:
 
     init : Model
     init =
-        { myDropdown = False }
+        { myDropdownIsOpen = False }
 
     type alias Model =
-        { myDropdown : Dropdown.State }
+        { myDropdownIsOpen : Dropdown.State }
 
     type Msg
         = ToggleDropdown Bool
@@ -24,37 +24,31 @@ Basic example of usage:
     update msg model =
         case msg of
             ToggleDropdown newState ->
-                { model | myDropdown = newState }
+                { model | myDropdownIsOpen = newState }
 
     view : Model -> Html Msg
-    view model =
+    view { myDropdownIsOpen } =
         div []
             [ dropdown
-                myDropdownConfig
-                model.myDropdown
-                div
-                []
-                [ \config state ->
-                    toggle config state button [] [ text "Toggle" ]
-                , \config state ->
-                    drawer config
-                        state
-                        div
-                        []
-                        [ button [] [ text "Option 1" ]
-                        , button [] [ text "Option 2" ]
-                        , button [] [ text "Option 3" ]
-                        ]
-                ]
+                { identifier = "my-dropdown"
+                , toggleEvent = Dropdown.OnClick
+                , drawerVisibleAttribute = class "visible"
+                , onToggle = ToggleDropdown
+                , layout =
+                    \{ toDropdown, toToggle, toDrawer } ->
+                        toDropdown div
+                            []
+                            [ toToggle button [] [ text "Toggle" ]
+                            , toDrawer div
+                                []
+                                [ button [] [ text "Option 1" ]
+                                , button [] [ text "Option 2" ]
+                                , button [] [ text "Option 3" ]
+                                ]
+                            ]
+                }
+                myDropdownIsOpen
             ]
-
-    myDropdownConfig : Dropdown.Config Msg
-    myDropdownConfig =
-        { identifier = "myDropdown"
-        , toggleEvent = Dropdown.OnClick
-        , drawerVisibleAttribute = class "visible"
-        , onToggle = ToggleDropdown
-        }
 
 
 # Configuration
@@ -88,13 +82,15 @@ type alias State =
   - `toggleEvent`: Event on which the dropdown's drawer should appear or disappear.
   - `drawerVisibleAttribute`: `Attribute msg` that's applied to the dropdown's drawer when visible.
   - `onToggle`: msg which will be called when the state of the dropdown should be changed.
+  - `layout`: The layout function that determines how the elements of the dropdown should be layed out.
 
 -}
-type alias Config msg =
+type alias Config msg html =
     { identifier : String
     , toggleEvent : ToggleEvent
     , drawerVisibleAttribute : Attribute msg
     , onToggle : State -> msg
+    , layout : DropdownBuilder msg -> html
     }
 
 
@@ -106,33 +102,98 @@ type ToggleEvent
     | OnFocus
 
 
-{-| Creates a dropdown using the given state, config, toggle, and drawer.
+{-| A shorthand for the type of function used to construct Html element nodes.
 
-    dropdown
-        myDropdownConfig
+This takes a list of attributes and a list of child elements in order to build a new parent element.
+
+-}
+type alias HtmlBuilder msg =
+    List (Attribute msg) -> List (Html msg) -> Html msg
+
+
+{-| Everything required to build a particular dropdown.
+
+  - toDropdown - the function `root` with `Config` and `State` applied to it.
+  - toToggle - the function `toggle` with `Config` and `State` applied to it.
+  - toDrawer - the function `drawer` with `Config` and `State` applied to it.
+
+-}
+type alias DropdownBuilder msg =
+    { toDropdown : HtmlBuilder msg -> HtmlBuilder msg
+    , toToggle : HtmlBuilder msg -> HtmlBuilder msg
+    , toDrawer : HtmlBuilder msg -> HtmlBuilder msg
+    }
+
+
+{-| The convenient way of building a dropdown. Everything can be done with this one function.
+
+Use the `DropdownBuilder` that is provided in order to layout the elements of the dropdown however you wish.
+
+    Dropdown.dropdown
+        { identifier = "my-dropdown"
+        , toggleEvent = Dropdown.OnClick
+        , drawerVisibleAttribute = class "visible"
+        , onToggle = ToggleDropdown
+        , layout =
+            \{ toDropdown, toToggle, toDrawer } ->
+                toDropdown div
+                    []
+                    [ toToggle button [] [ text "Toggle" ]
+                    , toDrawer div
+                        []
+                        [ button [] [ text "Option 1" ]
+                        , button [] [ text "Option 2" ]
+                        , button [] [ text "Option 3" ]
+                        ]
+                    ]
+        }
         myDropdownState
-        div
-        []
-        [ toggle button
-            [ class "myButton" ]
-            [ text "More options" ]
-        , drawer div
-            [ class "myDropdownDrawer" ]
-            [ button [ onClick NewFile ] [ text "New" ]
-            , button [ onClick OpenFile ] [ text "Open..." ]
-            , button [ onClick SaveFile ] [ text "Save" ]
-            ]
-        ]
 
 -}
 dropdown :
+    Config msg html
+    -> State
+    -> html
+dropdown config state =
+    config.layout
+        { toToggle = toggle config state
+        , toDrawer = drawer config state
+        , toDropdown = root config state
+        }
+
+
+{-| An alternative way to roll your own dropdown using the given config, state, toggle, and drawer.
+
+    type alias SimpleDropdownConfig msg =
+        { identifier : String
+        , toggleEvent : ToggleEvent
+        , drawerVisibleAttribute : Attribute msg
+        , onToggle : State -> msg
+        , toggleAttrs : List (Attribute msg)
+        , toggleLabel : Html msg
+        , drawerAttrs : List (Attribute msg)
+        , drawerItems : List (Html msg)
+        }
+
+    simpleDropdown : SimpleDropdownConfig msg -> State -> Html msg
+    simpleDropdown config state =
+        root config
+            state
+            div
+            []
+            [ toggle config state button config.toggleAttrs [ config.toggleLabel ]
+            , drawer config state div config.drawerAttrs config.drawerItems
+            ]
+
+-}
+root :
     { config | identifier : String, toggleEvent : ToggleEvent, onToggle : State -> msg }
     -> State
     -> (List (Attribute msg) -> List (Html msg) -> Html msg)
     -> List (Attribute msg)
-    -> List ({ config | identifier : String, toggleEvent : ToggleEvent, onToggle : State -> msg } -> State -> Html msg)
+    -> List (Html msg)
     -> Html msg
-dropdown ({ toggleEvent, identifier } as config) isOpen element attributes children =
+root ({ toggleEvent, identifier } as config) isOpen element attributes children =
     let
         toggleEvents =
             case toggleEvent of
@@ -155,7 +216,7 @@ dropdown ({ toggleEvent, identifier } as config) isOpen element attributes child
                ]
             ++ attributes
         )
-        (List.map (\child -> child config isOpen) children)
+        children
 
 
 {-| Transforms the given HTML-element into a working toggle for your dropdown.
@@ -164,7 +225,7 @@ See `dropdown` on how to use in combination with `drawer`.
 Example of use:
 
     toggle
-        myDropdownConfig
+        { onToggle = DropdownToggle, toggleEvent = Dropdown.OnClick }
         myDropdownState
         button
         [ class "myButton" ]
@@ -211,6 +272,8 @@ See `dropdown` on how to use in combination with `toggle`.
 Example of use:
 
     drawer
+        { drawerVisibleAttribute = class "visible" }
+        dropdownState
         div
         [ class "myDropdownDrawer" ]
         [ button [ onClick NewFile ] [ text "New" ]

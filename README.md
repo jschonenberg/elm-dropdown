@@ -16,11 +16,11 @@ Basic example of use:
 ```elm
 init : Model
 init =
-    { myDropdown = False }
+    { myDropdownIsOpen = False }
 
 
 type alias Model =
-    { myDropdown : Dropdown.State }
+    { myDropdownIsOpen : Dropdown.State }
 
 
 type Msg
@@ -31,37 +31,30 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         ToggleDropdown newState ->
-            { model | myDropdown = newState }
+            { model | myDropdownIsOpen = newState }
 
 
 view : Model -> Html Msg
-view model =
+view { myDropdownIsOpen } =
     div []
         [ dropdown
-            myDropdownConfig
-            model.myDropdown
-            div
-            []
-            [ \config state ->
-                toggle config state button [] [ text "Toggle" ]
-            , \config state ->
-                drawer config
-                    state
-                    div
-                    []
-                    [ button [] [ text "Option 1" ]
-                    , button [] [ text "Option 2" ]
-                    , button [] [ text "Option 3" ]
-                    ]
-            ]
+            { identifier = "my-dropdown"
+            , toggleEvent = Dropdown.OnClick
+            , drawerVisibleAttribute = class "visible"
+            , onToggle = ToggleDropdown
+            , layout =
+                \{ toDropdown, toToggle, toDrawer } ->
+                    toDropdown div
+                        []
+                        [ toToggle button [] [ text "Toggle" ]
+                        , toDrawer div
+                            []
+                            [ button [] [ text "Option 1" ]
+                            , button [] [ text "Option 2" ]
+                            , button [] [ text "Option 3" ]
+                            ]
+                        ]
+            }
+            myDropdownIsOpen
         ]
-
-
-myDropdownConfig : Dropdown.Config Msg
-myDropdownConfig =
-    { identifier = "myDropdown"
-    , toggleEvent = Dropdown.OnClick
-    , drawerVisibleAttribute = class "visible"
-    , onToggle = ToggleDropdown
-    }
 ```
