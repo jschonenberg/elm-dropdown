@@ -46,8 +46,8 @@ Basic example of usage:
                                 , button [] [ text "Option 3" ]
                                 ]
                             ]
+                , isToggled = myDropdownIsOpen
                 }
-                myDropdownIsOpen
             ]
 
 
@@ -91,6 +91,7 @@ type alias Config msg html =
     , drawerVisibleAttribute : Attribute msg
     , onToggle : State -> msg
     , layout : DropdownBuilder msg -> html
+    , isToggled : State
     }
 
 
@@ -146,67 +147,65 @@ Use the `DropdownBuilder` that is provided in order to layout the elements of th
                         , button [] [ text "Option 3" ]
                         ]
                     ]
+        , isToggled = myDropdownState
         }
-        myDropdownState
 
 -}
 dropdown :
     Config msg html
-    -> State
     -> html
-dropdown config state =
+dropdown config =
     config.layout
-        { toToggle = toggle config state
-        , toDrawer = drawer config state
-        , toDropdown = root config state
+        { toToggle = toggle config
+        , toDrawer = drawer config
+        , toDropdown = root config
         }
 
 
-{-| An alternative way to roll your own dropdown using the given config, state, toggle, and drawer.
+{-| An alternative way to roll your own dropdown using the given config, isToggled, toggle, and drawer.
 
     type alias SimpleDropdownConfig msg =
         { identifier : String
         , toggleEvent : ToggleEvent
         , drawerVisibleAttribute : Attribute msg
         , onToggle : State -> msg
+        , isToggled : State
         , toggleAttrs : List (Attribute msg)
         , toggleLabel : Html msg
         , drawerAttrs : List (Attribute msg)
         , drawerItems : List (Html msg)
         }
 
-    simpleDropdown : SimpleDropdownConfig msg -> State -> Html msg
-    simpleDropdown config state =
+    simpleDropdown : SimpleDropdownConfig msg -> Html msg
+    simpleDropdown config =
         root config
-            state
             div
             []
-            [ toggle config state button config.toggleAttrs [ config.toggleLabel ]
-            , drawer config state div config.drawerAttrs config.drawerItems
+            [ toggle config button config.toggleAttrs [ config.toggleLabel ]
+            , drawer config div config.drawerAttrs config.drawerItems
             ]
 
 -}
 root :
-    { config | identifier : String, toggleEvent : ToggleEvent, onToggle : State -> msg }
-    -> State
+    { config | identifier : String, toggleEvent : ToggleEvent, onToggle : State -> msg, isToggled : State }
     -> (List (Attribute msg) -> List (Html msg) -> Html msg)
     -> List (Attribute msg)
     -> List (Html msg)
     -> Html msg
-root ({ toggleEvent, identifier } as config) isOpen element attributes children =
+root ({ toggleEvent, identifier } as config) element attributes children =
     let
         toggleEvents =
             case toggleEvent of
                 OnHover ->
-                    [ on "mouseout" (handleFocusChanged config isOpen)
-                    , on "focusout" (handleFocusChanged config isOpen)
+                    [ on "mouseout" (handleFocusChanged config)
+                    , on "focusout" (handleFocusChanged config)
                     ]
 
                 _ ->
-                    [ on "focusout" (handleFocusChanged config isOpen) ]
+                    [ on "focusout" (handleFocusChanged config) ]
     in
     element
-        ([ on "keydown" (handleKeyDown config isOpen) ]
+        ([ on "keydown" (handleKeyDown config) ]
             ++ toggleEvents
             ++ [ anchor identifier
                , tabindex -1
@@ -225,7 +224,7 @@ See `dropdown` on how to use in combination with `drawer`.
 Example of use:
 
     toggle
-        { onToggle = DropdownToggle, toggleEvent = Dropdown.OnClick }
+        { onToggle = DropdownToggle, toggleEvent = Dropdown.OnClick, isToggled = myDropdownIsOpen }
         myDropdownState
         button
         [ class "myButton" ]
@@ -233,20 +232,19 @@ Example of use:
 
 -}
 toggle :
-    { config | onToggle : State -> msg, toggleEvent : ToggleEvent }
-    -> State
+    { config | onToggle : State -> msg, toggleEvent : ToggleEvent, isToggled : State }
     -> (List (Attribute msg) -> List (Html msg) -> Html msg)
     -> List (Attribute msg)
     -> List (Html msg)
     -> Html msg
-toggle { onToggle, toggleEvent } isOpen element attributes children =
+toggle { onToggle, toggleEvent, isToggled } element attributes children =
     let
         toggleEvents =
             case toggleEvent of
                 OnClick ->
                     [ custom "click"
                         (Decode.succeed
-                            { message = onToggle (not isOpen)
+                            { message = onToggle (not isToggled)
                             , preventDefault = True
                             , stopPropagation = True
                             }
@@ -272,8 +270,7 @@ See `dropdown` on how to use in combination with `toggle`.
 Example of use:
 
     drawer
-        { drawerVisibleAttribute = class "visible" }
-        dropdownState
+        { drawerVisibleAttribute = class "visible", isToggled = myDropdownIsOpen }
         div
         [ class "myDropdownDrawer" ]
         [ button [ onClick NewFile ] [ text "New" ]
@@ -283,17 +280,16 @@ Example of use:
 
 -}
 drawer :
-    { config | drawerVisibleAttribute : Attribute msg }
-    -> State
+    { config | drawerVisibleAttribute : Attribute msg, isToggled : State }
     -> (List (Attribute msg) -> List (Html msg) -> Html msg)
     -> List (Attribute msg)
     -> List (Html msg)
     -> Html msg
-drawer config isOpen element givenAttributes children =
+drawer { drawerVisibleAttribute, isToggled } element givenAttributes children =
     let
         attributes =
-            if isOpen then
-                config.drawerVisibleAttribute :: [ visibilityVisible, positionAbsolute ] ++ givenAttributes
+            if isToggled then
+                drawerVisibleAttribute :: [ visibilityVisible, positionAbsolute ] ++ givenAttributes
 
             else
                 [ visibilityHidden, positionAbsolute ] ++ givenAttributes
@@ -309,22 +305,20 @@ anchor identifier =
 
 
 handleKeyDown :
-    { config | identifier : String, onToggle : State -> msg }
-    -> State
+    { config | identifier : String, onToggle : State -> msg, isToggled : State }
     -> Decoder msg
-handleKeyDown { identifier, onToggle } isOpen =
+handleKeyDown { identifier, onToggle, isToggled } =
     Decode.map onToggle
         (keyCode
             |> Decode.andThen
-                (Decode.succeed << (&&) isOpen << not << (==) 27)
+                (Decode.succeed << (&&) isToggled << not << (==) 27)
         )
 
 
 handleFocusChanged :
-    { config | identifier : String, onToggle : State -> msg }
-    -> State
+    { config | identifier : String, onToggle : State -> msg, isToggled : State }
     -> Decoder msg
-handleFocusChanged { identifier, onToggle } isOpen =
+handleFocusChanged { identifier, onToggle, isToggled } =
     Decode.map onToggle (isFocusOnSelf identifier)
 
 

@@ -55,6 +55,6 @@ view { myDropdownIsOpen } =
                             , button [] [ text "Option 3" ]
                             ]
                         ]
+            , isToggled = myDropdownIsOpen
             }
-            myDropdownIsOpen
         ]
