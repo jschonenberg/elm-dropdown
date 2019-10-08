@@ -1,9 +1,9 @@
 {
     "type": "package",
-    "name": "hercules-ci/elm-dropdown",
+    "name": "circuithub/elm-dropdown",
     "summary": "Component to serve as a foundation for custom dropdowns.",
     "license": "BSD-3-Clause",
-    "version": "1.0.1",
+    "version": "1.0.0",
     "exposed-modules": [
         "Dropdown"
     ],

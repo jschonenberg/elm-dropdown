@@ -1,7 +1,14 @@
 # elm-dropdown
 `elm-dropdown` offers a flexible component which can serve as a foundation for custom dropdowns, select-inputs, popovers, and more.
 
-#### Features:
+#### History
+
+A big thank you [jschonenberg](https://github.com/jschonenberg) who originally authored this package.
+This version is a slightly modified version updated for Elm 0.19 and fixes, refactoring.
+Please be aware that usage is not completely identical to the original.
+
+#### Features
+
 * Pure, state gets passed in from the parent.
 * Use any HTML-element as toggle or drawer.
 * Choose for toggle on on click, hover, or focus.
