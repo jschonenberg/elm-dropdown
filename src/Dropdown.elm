@@ -59,7 +59,7 @@ Basic example of usage:
 
 # Views
 
-@docs dropdown, toggle, drawer
+@docs dropdown, root, toggle, drawer
 
 -}
 
