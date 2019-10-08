@@ -1,6 +1,7 @@
 module Dropdown exposing
     ( State, Config, ToggleEvent(..)
-    , dropdown, root, toggle, drawer
+    , dropdown, toggle, drawer
+    , root
     )
 
 {-| Flexible dropdown component which serves as a foundation for custom dropdowns, select–inputs, popovers, and more.
@@ -90,7 +91,7 @@ type alias Config msg html =
     , toggleEvent : ToggleEvent
     , drawerVisibleAttribute : Attribute msg
     , onToggle : State -> msg
-    , layout : DropdownBuilder msg -> html
+    , layout : Builder msg -> html
     , isToggled : State
     }
 
@@ -119,7 +120,7 @@ type alias HtmlBuilder msg =
   - toDrawer - the function `drawer` with `Config` and `State` applied to it.
 
 -}
-type alias DropdownBuilder msg =
+type alias Builder msg =
     { toDropdown : HtmlBuilder msg -> HtmlBuilder msg
     , toToggle : HtmlBuilder msg -> HtmlBuilder msg
     , toDrawer : HtmlBuilder msg -> HtmlBuilder msg
@@ -128,7 +129,7 @@ type alias DropdownBuilder msg =
 
 {-| The convenient way of building a dropdown. Everything can be done with this one function.
 
-Use the `DropdownBuilder` that is provided in order to layout the elements of the dropdown however you wish.
+Use the `Dropdown.Builder` that is provided in order to layout the elements of the dropdown however you wish.
 
     Dropdown.dropdown
         { identifier = "my-dropdown"
@@ -192,26 +193,36 @@ root :
     -> List (Attribute msg)
     -> List (Html msg)
     -> Html msg
-root ({ toggleEvent, identifier } as config) element attributes children =
+root { toggleEvent, identifier, onToggle, isToggled } element attributes children =
     let
         toggleEvents =
             case toggleEvent of
                 OnHover ->
-                    [ on "mouseout" (handleFocusChanged config)
-                    , on "focusout" (handleFocusChanged config)
+                    [ on "mouseout" handleFocusChanged
+                    , on "focusout" handleFocusChanged
                     ]
 
                 _ ->
-                    [ on "focusout" (handleFocusChanged config) ]
+                    [ on "focusout" handleFocusChanged ]
+
+        handleKeyDown =
+            Decode.map onToggle
+                (keyCode
+                    |> Decode.andThen
+                        (Decode.succeed << (&&) isToggled << not << (==) 27)
+                )
+
+        handleFocusChanged =
+            Decode.map onToggle (isFocusOnSelf identifier)
     in
     element
-        ([ on "keydown" (handleKeyDown config) ]
+        ([ on "keydown" handleKeyDown ]
             ++ toggleEvents
-            ++ [ anchor identifier
+            ++ [ property "dropdownId" (Encode.string identifier)
                , tabindex -1
-               , positionRelative
-               , displayInlineBlock
-               , outlineNone
+               , style "position" "relative"
+               , style "display" "inline-block"
+               , style "outline" "none"
                ]
             ++ attributes
         )
@@ -289,37 +300,14 @@ drawer { drawerVisibleAttribute, isToggled } element givenAttributes children =
     let
         attributes =
             if isToggled then
-                drawerVisibleAttribute :: [ visibilityVisible, positionAbsolute ] ++ givenAttributes
+                drawerVisibleAttribute :: [ style "visibility" "visible", style "position" "absolute" ] ++ givenAttributes
 
             else
-                [ visibilityHidden, positionAbsolute ] ++ givenAttributes
+                [ style "visibility" "hidden", style "position" "absolute" ] ++ givenAttributes
     in
     element
         attributes
         children
-
-
-anchor : String -> Attribute msg
-anchor identifier =
-    property "dropdownId" (Encode.string identifier)
-
-
-handleKeyDown :
-    { config | identifier : String, onToggle : State -> msg, isToggled : State }
-    -> Decoder msg
-handleKeyDown { identifier, onToggle, isToggled } =
-    Decode.map onToggle
-        (keyCode
-            |> Decode.andThen
-                (Decode.succeed << (&&) isToggled << not << (==) 27)
-        )
-
-
-handleFocusChanged :
-    { config | identifier : String, onToggle : State -> msg, isToggled : State }
-    -> Decoder msg
-handleFocusChanged { identifier, onToggle, isToggled } =
-    Decode.map onToggle (isFocusOnSelf identifier)
 
 
 isFocusOnSelf : String -> Decoder Bool
@@ -371,33 +359,3 @@ type alias DomElement =
 
 type ParentElement
     = ParentElement DomElement
-
-
-visibilityVisible : Attribute msg
-visibilityVisible =
-    style "visibility" "visible"
-
-
-visibilityHidden : Attribute msg
-visibilityHidden =
-    style "visibility" "hidden"
-
-
-positionRelative : Attribute msg
-positionRelative =
-    style "position" "relative"
-
-
-positionAbsolute : Attribute msg
-positionAbsolute =
-    style "position" "absolute"
-
-
-displayInlineBlock : Attribute msg
-displayInlineBlock =
-    style "display" "inline-block"
-
-
-outlineNone : Attribute msg
-outlineNone =
-    style "outline" "none"
